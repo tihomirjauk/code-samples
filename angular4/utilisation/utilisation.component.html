@@ -1,0 +1,138 @@
+<pd-row class="statusbar">
+  <pd-column>
+      <label class="statusbar-title">{{ localizedUtilisation }}<span class="subtitle">&nbsp;- showing</span></label>
+
+     <div class="btn-group" ngbRadioGroup name="radioBasic" [(ngModel)]="utilisation_tabs" (change)="utilisationTypeChanged()" ngDefaultControl>
+      <label ngbButtonLabel class="btn-primary" pdSvTooltip tip="The maximum number of unique people seen on one day, within this time period.">
+        <input ngbButton type="radio" value="unique"> 
+        Unique
+      </label>
+      <label ngbButtonLabel class="btn-primary" pdSvTooltip tip="The maximum number of people seen at once, in this time period (Peak People).">
+        <input ngbButton type="radio" value="peak">
+        Peak
+      </label>
+      <label ngbButtonLabel class="btn-primary" pdSvTooltip tip="The daily Peak People, averaged across the time period (Average People).">
+        <input ngbButton type="radio" value="average">
+        Average
+      </label>
+    </div>
+    <span class="subtitle-notes">
+      People {{ localizedUtilisation | lowercase }} for the last {{ utilisationPeriodInMonths }} months from available utilisation sources
+    </span>
+  </pd-column>
+</pd-row>
+
+<pd-row class="stats">
+  <pd-boxes>
+
+    <!-- Peak People -->
+    <pd-box>
+      <div class="group-stats">
+        <pd-sv-icon
+          type="person"
+          pdSvTooltip
+          [tip]="showTooltipFor('people')"
+          [style.color]="utilisationColor"></pd-sv-icon>
+        <span class="number" [style.color]="utilisationColor">{{ realPeople | number: '1.0-2' }}</span>
+      </div>
+      <div class="label-container">
+        <label>People</label>
+        <span *ngIf="utilisation_tabs == 'unique'" class="sublabel">from Unique</span>
+        <span *ngIf="utilisation_tabs == 'average'" class="sublabel">from Average</span>
+        <span *ngIf="utilisation_tabs == 'peak'" class="sublabel">at Peak</span>
+      </div>
+    </pd-box>
+
+    <!-- Utilisation -->
+    <pd-box>
+
+      <div class="graph-area">
+        <pd-gauge
+          *ngIf="store.showGauge()"
+          [value]="utilisation"
+          pdSvTooltip
+          [tip]="showTooltipFor('utilisation')"
+        ></pd-gauge>
+        <pd-donut
+          *ngIf="!store.showGauge()"
+          [value]="utilisation"
+          pdSvTooltip
+          [tip]="showTooltipFor('utilisation')"
+        ></pd-donut>
+      </div>
+      <div class="label-container">
+        <label>{{ localizedUtilisation }}</label>
+        <span *ngIf="store.showGauge()" class="sublabel">{{ sublabel }}</span>
+      </div>
+    </pd-box>
+
+    <!-- Desks Over / Free Desks / Minimum Unoccupied -->
+    <pd-box>
+      <div class="group-stats">
+        <pd-sv-icon *ngIf="freeDesks >= 0"
+          type="workspace"
+          pdSvTooltip
+          [tip]="showTooltipFor('freeDesks')"
+          [style.color]="utilisationColor"></pd-sv-icon>
+
+        <pd-sv-icon *ngIf="freeDesks < 0"
+          type="workspace"
+          pdSvTooltip
+          [tip]="showTooltipFor('deskOver')"
+          [style.color]="utilisationColor"></pd-sv-icon>
+
+        <span class="number" [style.color]="utilisationColor">{{ freeDesks | positive | number: '1.0-0' }}</span>
+      </div>
+      <div class="label-container">
+
+        <label *ngIf="freeDesks >= 0">Free Desks</label>
+        <span *ngIf="freeDesks >= 0 && utilisation_tabs == 'unique'" class="sublabel">from Unique</span>
+        <span *ngIf="freeDesks >= 0 && utilisation_tabs == 'average'" class="sublabel">from Average</span>
+        <span *ngIf="freeDesks >= 0 && utilisation_tabs == 'peak'" class="sublabel">at Peak</span>
+
+        <label *ngIf="freeDesks < 0">Desks Over</label>
+        <span *ngIf="freeDesks < 0" class="sublabel">{{ localizedUtilisation }} Threshold</span>
+      </div>
+
+    </pd-box>
+
+    <!-- People Over / Opportunity -->
+    <pd-box>
+      <div class="group-stats">
+        <pd-sv-icon *ngIf="realOpportunity >= 0"
+        type="person" pdSvTooltip
+        [tip]="showTooltipFor('morePeople')"
+        [style.color]="utilisationColor"></pd-sv-icon>
+        <pd-sv-icon *ngIf="realOpportunity < 0"
+        type="person"
+        pdSvTooltip
+        [tip]="showTooltipFor('peopleOver')"
+        [style.color]="utilisationColor"></pd-sv-icon>
+        <span class="number" [style.color]="utilisationColor">{{ realOpportunity | positive | number: '1.0-0' }}</span>
+      </div>
+
+      <div class="label-container">
+        <label *ngIf="realOpportunity >= 0">More People</label>
+        <span *ngIf="realOpportunity >= 0" class="sublabel">can be assigned based on {{ localizedUtilisation | lowercase}} threshold</span>
+
+        <label *ngIf="realOpportunity < 0">People Over</label>
+        <span *ngIf="realOpportunity < 0" class="sublabel">{{ localizedUtilisation }} Threshold</span>
+      </div>
+
+    </pd-box>
+
+  </pd-boxes>
+</pd-row>
+
+<pd-row class="trends">
+  <pd-column>
+    <div class="left">
+      <label>Average {{ localizedUtilisation }} over {{ utilisationTrendPeriodInMonths | number: '1.0-0' }} months:  </label><span> <i class="{{ utilisationTrendIcon }}"></i> {{ utilisationTrend | number: '1.1-1' }}%</span>
+    </div>
+  </pd-column>
+  <pd-column>
+    <div class="right">
+      <label>A&nbsp;</label> <span pdSvTooltip [tip]="showTooltipFor('realRatio')">{{ realRatio | number: '1.1-2' }}</span> <label>&nbsp;Ratio&nbsp;/ </label> <span pdSvTooltip [tip]="showTooltipFor('realCapacity')">&nbsp;{{ realCapacity | number: '1.0-0' }}</span>&nbsp;<label>Capacity would be needed to hit {{ localizedUtilisation }} Threshold ({{ targetUtilisationPercentage | number: '1.0-0' }}%)</label>
+    </div>
+  </pd-column>
+</pd-row>
